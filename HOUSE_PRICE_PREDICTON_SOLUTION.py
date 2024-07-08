@@ -1,14 +1,7 @@
 ################################################################
-# Ev Fiyat Tahmin Modeli
+# House Price Prediction Model
 ################################################################
 
-
-# Görev
-# Elimizdeki veri seti üzerinden minimum hata ile ev fiyatlarını tahmin eden bir makine öğrenmesi modeli geliştiriniz ve kaggle yarışmasına tahminlerinizi yükleyiniz.
-# https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview/evaluation
-
-
-# 1. GEREKLILIKLER
 
 import numpy as np
 import pandas as pd
@@ -40,31 +33,17 @@ pd.set_option('display.width', None)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
+
 ######################################
-# GÖREV 1 : Veri setine EDA işlemlerini uygulayınız.
+# TASK 1: Apply EDA operations to the data set.
 ######################################
 
-# 1. Genel Resim
-# 2. Kategorik Değişken Analizi (Analysis of Categorical Variables)
-# 3. Sayısal Değişken Analizi (Analysis of Numerical Variables)
-# 4. Hedef Değişken Analizi (Analysis of Target Variable)
-# 5. Korelasyon Analizi (Analysis of Correlation)
-
-################################################################
-# Adım 1: Train ve Test veri setlerini okutup birleştiriniz. Birleştirdiğiniz veri üzerinden ilerleyiniz.
-################################################################
-
-# train ve test setlerinin bir araya getirilmesi.
 train = pd.read_csv("datasets/train.csv")
 test = pd.read_csv("datasets/test.csv")
 df = train.append(test, ignore_index=False).reset_index()
 
 df = df.drop("index", axis=1)
 
-
-######################################
-# 1. Genel Resim
-######################################
 
 def check_df(dataframe):
     print("##################### Shape #####################")
@@ -83,11 +62,6 @@ def check_df(dataframe):
 
 check_df(df)
 
-
-
-##################################
-# NUMERİK VE KATEGORİK DEĞİŞKENLERİN YAKALANMASI
-##################################
 
 def grab_col_names(dataframe, cat_th=10, car_th=20):
     """
@@ -130,10 +104,6 @@ def grab_col_names(dataframe, cat_th=10, car_th=20):
 cat_cols, cat_but_car, num_cols = grab_col_names(df)
 
 
-######################################
-# 2. Kategorik Değişken Analizi (Analysis of Categorical Variables)
-######################################
-
 def cat_summary(dataframe, col_name, plot=False):
     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
                         "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
@@ -146,11 +116,6 @@ def cat_summary(dataframe, col_name, plot=False):
 for col in cat_cols:
     cat_summary(df, col,True)
 
-
-
-######################################
-# 3. Sayısal Değişken Analizi (Analysis of Numerical Variables)
-######################################
 
 def num_summary(dataframe, numerical_col, plot=False):
     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
@@ -169,11 +134,6 @@ for col in num_cols:
     num_summary(df, col, True)
 
 
-
-######################################
-# 4. Hedef Değişken Analizi (Analysis of Target Variable)
-######################################
-
 def target_summary_with_cat(dataframe, target, categorical_col):
     print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
 
@@ -181,27 +141,19 @@ def target_summary_with_cat(dataframe, target, categorical_col):
 for col in cat_cols:
     target_summary_with_cat(df, "SalePrice", col)
 
-
-# Bağımlı değişkenin incelenmesi
 df["SalePrice"].hist(bins=100)
 plt.show(block=True)
 
-# Bağımlı değişkenin logaritmasının incelenmesi
 np.log1p(df['SalePrice']).hist(bins=50)
 plt.show(block=True)
 
-######################################
-# 5. Korelasyon Analizi (Analysis of Correlation)
-######################################
 
 corr = df[num_cols].corr()
 corr
 
-# Korelasyonların gösterilmesi
 sns.set(rc={'figure.figsize': (25, 15)})
 sns.heatmap(corr, cmap="RdBu",annot=True)
 plt.show(block=True)
-
 
 
 def high_correlated_cols(dataframe, plot=False, corr_th=0.70):
@@ -222,14 +174,9 @@ high_correlated_cols(df, plot=False)
 
 
 ######################################
-# Görev 2 : Feature Engineering
+# TASK 2 : Feature Engineering
 ######################################
 
-######################################
-# Aykırı Değer Analizi
-######################################
-
-# Aykırı değerlerin baskılanması
 def outlier_thresholds(dataframe, variable, low_quantile=0.10, up_quantile=0.90):
     quantile_one = dataframe[variable].quantile(low_quantile)
     quantile_three = dataframe[variable].quantile(up_quantile)
@@ -238,7 +185,6 @@ def outlier_thresholds(dataframe, variable, low_quantile=0.10, up_quantile=0.90)
     low_limit = quantile_one - 1.5 * interquantile_range
     return low_limit, up_limit
 
-# Aykırı değer kontrolü
 def check_outlier(dataframe, col_name):
     low_limit, up_limit = outlier_thresholds(dataframe, col_name)
     if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
@@ -252,7 +198,6 @@ for col in num_cols:
       print(col, check_outlier(df, col))
 
 
-# Aykırı değerlerin baskılanması
 def replace_with_thresholds(dataframe, variable):
     low_limit, up_limit = outlier_thresholds(dataframe, variable)
     dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
@@ -262,12 +207,6 @@ def replace_with_thresholds(dataframe, variable):
 for col in num_cols:
     if col != "SalePrice":
         replace_with_thresholds(df, col)
-
-
-
-######################################
-# Eksik Değer Analizi
-######################################
 
 
 def missing_values_table(dataframe, na_name=False):
@@ -291,19 +230,14 @@ df["Alley"].value_counts()
 df["BsmtQual"].value_counts()
 
 
-# Bazı değişkenlerdeki boş değerler evin o özelliğe sahip olmadığını ifade etmektedir
 no_cols = ["Alley","BsmtQual","BsmtCond","BsmtExposure","BsmtFinType1","BsmtFinType2","FireplaceQu",
            "GarageType","GarageFinish","GarageQual","GarageCond","PoolQC","Fence","MiscFeature"]
 
-# Kolonlardaki boşlukların "No" ifadesi ile doldurulması
 for col in no_cols:
     df[col].fillna("No",inplace=True)
 
 missing_values_table(df)
 
-
-
-# Bu fonsksiyon eksik değerlerin median veya mean ile doldurulmasını sağlar
 
 def quick_missing_imp(data, num_method="median", cat_length=20, target="SalePrice"):
     variables_with_na = [col for col in data.columns if data[col].isnull().sum() > 0]  # Eksik değere sahip olan değişkenler listelenir
@@ -335,12 +269,6 @@ def quick_missing_imp(data, num_method="median", cat_length=20, target="SalePric
 df = quick_missing_imp(df, num_method="median", cat_length=17)
 
 
-######################################
-# Rare analizi yapınız ve rare encoder uygulayınız.
-######################################
-
-# Kategorik kolonların dağılımının incelenmesi
-
 def rare_analyser(dataframe, target, cat_cols):
     for col in cat_cols:
         print(col, ":", len(dataframe[col].value_counts()))
@@ -365,13 +293,7 @@ def rare_encoder(dataframe, rare_perc):
 
     return temp_df
 
-
 rare_encoder(df,0.01)
-
-
-######################################
-# yeni değişkenler oluşturunuz ve oluşturduğunuz yeni değişkenlerin başına 'NEW' ekleyiniz.
-######################################
 
 
 df["NEW_1st*GrLiv"] = df["1stFlrSF"] * df["GrLivArea"]
@@ -430,14 +352,8 @@ df["NEW_GarageSold"] = df.YrSold - df.GarageYrBlt # 48
 
 drop_list = ["Street", "Alley", "LandContour", "Utilities", "LandSlope","Heating", "PoolQC", "MiscFeature","Neighborhood"]
 
-# drop_list'teki değişkenlerin düşürülmesi
 df.drop(drop_list, axis=1, inplace=True)
 
-
-
-##################
-# Label Encoding & One-Hot Encoding işlemlerini uygulayınız.
-##################
 
 cat_cols, cat_but_car, num_cols = grab_col_names(df)
 
@@ -459,35 +375,19 @@ def one_hot_encoder(dataframe, categorical_cols, drop_first=False):
 df = one_hot_encoder(df, cat_cols, drop_first=True)
 
 df.shape
-##################################
-# MODELLEME
-##################################
-# x=test
-# #train
-###############################################################xxxxxxxxxxxxxxxxxxx
-
-#############################################/////////////
-
-
-#xxxxxxxxxxxxxxxxxxxx
-
-
-
 
 
 
 ##################################
-# GÖREV 3: Model kurma
+# TASK: Model Building
 ##################################
 
-#  Train ve Test verisini ayırınız. (SalePrice değişkeni boş olan değerler test verisidir.)
 train_df = df[df['SalePrice'].notnull()]
 test_df = df[df['SalePrice'].isnull()]
 
 y = train_df['SalePrice'] # np.log1p(df['SalePrice'])
 X = train_df.drop(["Id", "SalePrice"], axis=1)
 
-# Train verisi ile model kurup, model başarısını değerlendiriniz.
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=17)
 
 models = [('LR', LinearRegression()),
@@ -508,130 +408,6 @@ for name, regressor in models:
     print(f"RMSE: {round(rmse, 4)} ({name}) ")
 
 
-
-
 df['SalePrice'].mean()
 df['SalePrice'].std()
-
-
-
-
-##################
-# BONUS : Log dönüşümü yaparak model kurunuz ve rmse sonuçlarını gözlemleyiniz.
-# Not: Log'un tersini (inverse) almayı unutmayınız.
-##################
-
-# Log dönüşümünün gerçekleştirilmesi
-
-
-train_df = df[df['SalePrice'].notnull()]
-test_df = df[df['SalePrice'].isnull()]
-
-y = np.log1p(train_df['SalePrice'])
-X = train_df.drop(["Id", "SalePrice"], axis=1)
-
-# Verinin eğitim ve tet verisi olarak bölünmesi
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=17)
-
-
-# lgbm_tuned = LGBMRegressor(**lgbm_gs_best.best_params_).fit(X_train, y_train)
-
-lgbm = LGBMRegressor().fit(X_train, y_train)
-y_pred = lgbm.predict(X_test)
-
-
-
-y_pred
-# Yapılan LOG dönüşümünün tersinin (inverse'nin) alınması
-new_y = np.expm1(y_pred)
-new_y
-new_y_test = np.expm1(y_test)
-new_y_test
-
-mae = mean_absolute_error(new_y_test, new_y)
-mae
-mape = np.mean(mae / new_y)
-np.sqrt(mean_squared_error(new_y_test, new_y))
-
-# RMSE : 22118.413146021652
-
-
-
-
-
-##################
-# hiperparametre optimizasyonlarını gerçekleştiriniz.
-##################
-
-
-lgbm_model = LGBMRegressor(random_state=46)
-
-rmse = np.mean(np.sqrt(-cross_val_score(lgbm_model, X, y, cv=5, scoring="neg_mean_squared_error")))
-print(rmse)
-
-lgbm_params = {"learning_rate": [0.01, 0.1],
-               "n_estimators": [500, 1500]
-               #"colsample_bytree": [0.5, 0.7, 1]
-             }
-
-lgbm_gs_best = GridSearchCV(lgbm_model,
-                            lgbm_params,
-                            cv=3,
-                            n_jobs=-1,
-                            verbose=True).fit(X, y)
-
-lgbm_gs_best.best_params_
-
-final_model = lgbm_model.set_params(**lgbm_gs_best.best_params_).fit(X, y)
-
-rmse = np.mean(np.sqrt(-cross_val_score(final_model, X, y, cv=5, scoring="neg_mean_squared_error")))
-print(rmse)
-
-
-################################################################
-# Değişkenlerin önem düzeyini belirten feature_importance fonksiyonunu kullanarak özelliklerin sıralamasını çizdiriniz.
-################################################################
-
-# feature importance
-def plot_importance(model, features, num=len(X), save=False):
-
-    feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": features.columns})
-    plt.figure(figsize=(10, 10))
-    sns.set(font_scale=1)
-    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[0:num])
-    plt.title("Features")
-    plt.tight_layout()
-    plt.show(block=True)
-    if save:
-        plt.savefig("importances.png")
-
-model = LGBMRegressor()
-model.fit(X, y)
-
-plot_importance(model, X, 20)
-
-
-
-
-
-########################################
-# test dataframeindeki boş olan salePrice değişkenlerini tahminleyiniz ve
-# Kaggle sayfasına submit etmeye uygun halde bir dataframe oluşturunuz. (Id, SalePrice)
-########################################
-model = LGBMRegressor()
-model.fit(X, y)
-predictions = model.predict(test_df.drop(["Id","SalePrice"], axis=1))
-
-dictionary = {"Id":test_df.index, "SalePrice":predictions}
-dfSubmission = pd.DataFrame(dictionary)
-dfSubmission.to_csv("housePricePredictions.csv", index=False)
-
-
-
-
-
-
-
-
-
 
